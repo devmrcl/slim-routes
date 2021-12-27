@@ -39,9 +39,9 @@ class UserController
 {...}
 ```
 
-#### Controller arguments
+#### Controller parameters
 
-| Argument   | Description                                                                     |
+| Parameter  | Description                                                                     |
 |------------|---------------------------------------------------------------------------------|
 | pattern    | Prefixes all routes' pattern                                                    |
 | middleware | Adds middleware to all routes                                                   |
@@ -86,9 +86,9 @@ Routes:
 -> POST /users
 ```
 
-#### Route arguments
+#### Route parameters
 
-| Argument   | Description                        |
+| Parameter  | Description                        |
 |------------|------------------------------------|
 | pattern    | Route pattern                      |
 | method     | HTTP method(s)                     |
@@ -289,9 +289,9 @@ class Group
     public function __construct()
     {
         $this->groups = [
-            self::ANIMALS => ($animals = new GroupConfiguration(self::ANIMALS, 'animals', [AnimalsMiddleware::class])),
-            self::ELEPHANTS => new GroupConfiguration(self::ELEPHANTS, 'elephants', [ElephantsMiddleware::class], $animals),
-            self::CATS => new GroupConfiguration(self::CATS, 'cats', [CatsMiddleware::class], $animals)
+            self::ANIMALS => ($animals = new GroupConfiguration(id: self::ANIMALS, pattern: 'animals', middleware: AnimalsMiddleware::class)),
+            self::ELEPHANTS => new GroupConfiguration(id: self::ELEPHANTS, pattern: 'elephants', middleware: ElephantsMiddleware::class, parent: $animals),
+            self::CATS => new GroupConfiguration(id: self::CATS, pattern: 'cats', middleware: CatsMiddleware::class, parent: $animals)
         ];
     }
 
@@ -319,7 +319,7 @@ class CatsController {
     #[Route] 
     public function getAllCats
     
-    #[Route('/{id}')]
+    #[Route('{id}')]
     public function getCat
 }
 
@@ -345,7 +345,7 @@ For enabling API versioning to all of your routes, you have to configure
 an [`VersionConfiguration`](src/Routing/VersionConfiguration.php).
 
 ```php
-$sr->addApiVersion(new VersionConfiguration('v1', MyMiddleware::class))
+$sr->addApiVersion(new VersionConfiguration(version: 'v1', middleware: MyMiddleware::class))
 ```
 
 ### Multiple API versions
@@ -359,10 +359,12 @@ Let's assume you have three API versions `v1`, `v2`, `v3`.
 A possible configuration could look like the following:
 
 ```php
+use Mrcl\SlimRoutes\Routing\VersionConfiguration;
+
 $sr
-  ->addApiVersion(new VersionConfiguration('v1', ApiV1Middleware::class, RoutePriority::LOW, default: false))
-  ->addApiVersion(new VersionConfiguration('v2', ApiV2Middleware::class))
-  ->addApiVersion(new VersionConfiguration('v3', [ApiMiddleware::class, OtherApiMiddleware::class]))
+  ->addApiVersion(new VersionConfiguration(version: 'v1', middleware: ApiV1Middleware::class, priority: RoutePriority::LOW, default: false))
+  ->addApiVersion(new VersionConfiguration(version: 'v2', middleware: ApiV2Middleware::class))
+  ->addApiVersion(new VersionConfiguration(version: 'v3', middleware: [ApiMiddleware::class, OtherApiMiddleware::class]))
   ->enableApiVersionPrioritization()
   ...
 ```
@@ -391,7 +393,7 @@ We have the following additional config
 ```php
   ...
   ->addRouteGroup(new GroupConfiguration(id: 'cats-v1', pattern: 'cats'))
-  ->addRouteGroup(new GroupConfiguration(id: 'cats', pattern: 'cats', middleware: [CatsMiddleware::class]))
+  ->addRouteGroup(new GroupConfiguration(id: 'cats', pattern: 'cats', middleware: CatsMiddleware::class))
   ->enableRoutePrioritization()
 ```
 
@@ -403,7 +405,11 @@ class CatController {
     #[Route] 
     public function getAllCats
     
-    #[Route('all', groupId: 'cats-v1', version: 'v1')] 
+    #[Route(
+      pattern: 'all', 
+      groupId: 'cats-v1', 
+      version: 'v1'
+    )] 
     public function getAllCatsV1
 }
 
@@ -423,7 +429,11 @@ class ViewCatsAction {
 ```
 
 ```php 
-#[Route('all', groupId: 'cats-v1', version: 'v1')] 
+#[Route(
+  pattern: 'all', 
+  groupId: 'cats-v1', 
+  version: 'v1'
+)] 
 class ViewCatsActionV1 {
     public function __invoke
 }
@@ -438,7 +448,10 @@ or `#[Controller]`
 attribute.
 
 ```php
-#[Route('/my-action', version: VersionConfiguration::NONE)]
+#[Route(
+  pattern: 'my-action', 
+  version: VersionConfiguration::NONE
+)]
 class MyAction
 {
     public function __invoke
@@ -471,11 +484,11 @@ $sr
 ```
 
 ```php
-#[Route('my-action', name: 'my-action')]
+#[Route(name: 'my-action')]
 class MyAction
 {
     public function __invoke
 }
 ```
 
-Route names are `v2-my-action` and `v1-my-action`
+Route names are `v1-my-action` and `v2-my-action`
